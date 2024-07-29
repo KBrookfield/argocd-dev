@@ -1,0 +1,203 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: workload-vsphere-tkg4
+spec:
+  clusterNetwork:
+    apiServerPort: 6443
+    pods:
+      cidrBlocks: ["192.168.32.0/20"]
+    serviceDomain: "cluster.local"
+    services:
+      cidrBlocks: ["192.168.0.0/20"]
+  paused: false
+  topology:
+    class: tanzukubernetescluster
+    version: v1.30.1---vmware.1-fips-tkg.5
+    controlPlane:
+      machineHealthCheck:
+        enable: true
+        maxUnhealthy: 100%
+        nodeStartupTimeout: 4h0m0s
+        unhealthyConditions:
+        - status: Unknown
+          timeout: 5m0s
+          type: Ready
+        - status: "False"
+          timeout: 12m0s
+          type: Ready
+        - status: "true"
+          timeout: 5m0s
+          type: MemoryPressure
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu
+        labels:
+          my-custom-label-key: my-custom-label-value
+#      nodeDeletionTimeout: "10s"
+#      nodeDrainTimeout: "0s"
+#      nodeVolumeDetachTimeout: "0s"
+      replicas: 1
+    workers:
+      machineDeployments:
+      - class: node-pool
+#        failureDomain: zone1
+#        machineHealthCheck:
+#          enable: true
+#          maxUnhealthy: 100%
+#          nodeStartupTimeout: 4h0m0s
+#          unhealthyConditions:
+#          - status: Unknown
+#            timeout: 5m0s
+#            type: Ready
+#          - status: "False"
+#            timeout: 12m0s
+#            type: Ready
+        metadata:
+          annotations:
+            cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "3"
+            cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "1"
+            run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu
+          labels:
+            my-custom-label-key: my-custom-label-value
+        minReadySeconds: 0
+        name: node-pool-1
+#        nodeDeletionTimeout: "10s"
+#        nodeDrainTimeout: "0s"
+#        nodeVolumeDetachTimeout: "0s"
+#        replicas: 1
+        variables:
+          overrides:
+          - name: vmClass
+            value: best-effort-xsmall
+          - name: nodePoolLabels
+            value: [{ "key": "my-nodepool-name", "value": "node-pool-1" }]
+      - class: node-pool
+#        failureDomain: zone2
+#        machineHealthCheck:
+#          enable: true
+#          maxUnhealthy: 100%
+#          nodeStartupTimeout: 4h0m0s
+#          unhealthyConditions:
+#          - status: Unknown
+#            timeout: 5m0s
+#            type: Ready
+#          - status: "False"
+#            timeout: 12m0s
+#            type: Ready
+        metadata:
+          annotations:
+            cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "3"
+            cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "1"
+            run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu
+          labels:
+            my-custom-label-key: my-custom-label-value
+        name: node-pool-2
+#        nodeDeletionTimeout: "10s"
+#        nodeDrainTimeout: "0s"
+#        nodeVolumeDetachTimeout: "0s"
+#        replicas: 1
+#        variables:
+#          overrides:
+#          - name: vmClass
+#            value: best-effort-large
+      - class: node-pool
+#        failureDomain: zone3
+#        machineHealthCheck:
+#          enable: true
+#          maxUnhealthy: 100%
+#          nodeStartupTimeout: 4h0m0s
+#          unhealthyConditions:
+#          - status: Unknown
+#            timeout: 5m0s
+#            type: Ready
+#          - status: "False"
+#            timeout: 12m0s
+#            type: Ready
+        metadata:
+          annotations:
+            cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "3"
+            cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "1"
+            run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu
+          labels:
+            my-custom-label-key: my-custom-label-value
+        name: node-pool-3
+#        nodeDeletionTimeout: "10s"
+#        nodeDrainTimeout: "0s"
+#        nodeVolumeDetachTimeout: "0s"
+#        replicas: 1
+#         variables:
+#           overrides:
+#           - name: vmClass
+#             value: best-effort-large
+    variables:
+      - name: ntp
+        value: time.google.com
+      - name: vmClass
+        value: best-effort-small
+      - name: storageClass
+        value: k8s-storage-policy
+      - name: defaultStorageClass
+        value: k8s-storage-policy
+      - name: clusterEncryptionConfigYaml
+        value: |
+          apiVersion: apiserver.config.k8s.io/v1
+          kind: EncryptionConfiguration
+          resources:
+            - resources:
+                - secrets
+              providers:
+                - aescbc:
+                    keys:
+                      - name: key1
+                        secret: QiMgJGYXudtljldVyl+AnXQQlk7r9iUXBfVKqdEfKm8=
+                - identity: {}
+# ADDITIONAL VALUES
+      - name: nodePoolVolumes
+        value:
+        - capacity:
+            storage: "5Gi"
+          mountPath: "/var/lib/containerd"
+          name: containerd
+          storageClass: k8s-storage-policy
+        - capacity:
+            storage: "5Gi"
+          mountPath: "/var/lib/kubelet"
+          name: kubelet
+          storageClass: k8s-storage-policy
+      - name: controlPlaneVolumes
+        value:
+        - capacity:
+            storage: "5Gi"
+          mountPath: "/var/lib/containerd"
+          name: containerd
+          storageClass: k8s-storage-policy
+        - capacity:
+            storage: "5Gi"
+          mountPath: "/var/lib/kubelet"
+          name: kubelet
+          storageClass: k8s-storage-policy
+      - name: podSecurityStandard
+        value:
+          audit: restricted
+          auditVersion: latest
+          enforce: privileged
+          enforceVersion: latest
+          warn: privileged
+          warnVersion: latest
+      - name: kubeAPIServerFQDNs
+        value:
+          - workload-vsphere-tkg4.vmw.lab
+      - name: controlPlaneCertificateRotation
+        value:
+          activate: true
+          daysBefore: 90
+      - name: nodePoolLabels
+        value:
+          - key: "my-nodepool-name"
+            value: "my-nodepool-value"
+#      - name: proxy
+#        value:
+#          httpProxy:
+#          httpsProxy:
+#          noProxy: ["",""]
